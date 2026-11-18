@@ -22,7 +22,8 @@ Base case: SD = 100 bb/100. Full numbers are in `results/simulation_summary.md`.
 3. **A real winner still suffers long, deep downswings.** In 2,000 simulated careers of the *same* player, the typical worst drawdown was **about 40 buy-ins**. The typical longest stretch without a new high lasted **about 96,000 hands**.
 4. **Survival comes before returns.** With a 30 buy-in bankroll and no moving down in stakes, **177 of those 2,000 careers went broke**. The group's average still looks excellent (+185 buy-ins), but that average belongs to no one who went broke.
 5. **Not knowing your edge is a risk in itself.** Risk of ruin is convex in the win rate, so averaging it over the uncertainty from point 1 raises it. At 50 buy-ins it goes from 1.8% to **4.8%**. At 100 buy-ins it goes from 0.03% to **1.1%**, about 34 times higher. Fat tails inside the game mattered far less.
-6. **In raw chips, the best player at the table lost.** Over the 10,000 public hands, the superhuman AI Pluribus finished at **−7.1 bb/100**. Its 95% interval runs from −24.4 to +10.2, which contains both a big loss and the published, luck-adjusted estimate of +4.8. Raw results would need about **124,000 hands**, 12 times the study, to be as precise as the authors' variance-reduced estimate.
+6. **Moving down is what makes a bankroll rule work.** My actual rule was 50 buy-ins per stake, moving down below 30. In the base case it cuts the chance of ruin from 1.5% to **0.18%** over 500,000 hands, on exactly the same luck. It does not rescue a thin edge: if the true win rate is at the low end of the interval, ruin is still about **10%**.
+7. **In raw chips, the best player at the table lost.** Over the 10,000 public hands, the superhuman AI Pluribus finished at **−7.1 bb/100**. Its 95% interval runs from −24.4 to +10.2, which contains both a big loss and the published, luck-adjusted estimate of +4.8. Raw results would need about **124,000 hands**, 12 times the study, to be as precise as the authors' variance-reduced estimate.
 
 **Reading my own record.** My results went from losing to break-even to winning. It is tempting to tell a clean story about the moment I got better, which Taleb calls the *narrative fallacy*. But the simulation shows that a player with a constant edge can look flat for around 100,000 hands, so the results curve alone cannot prove *when* I improved. The changes I made to my process (strict bankroll rules, moving from game-theory-optimal to exploitative play) are better evidence than the curve.
 
@@ -121,6 +122,27 @@ At 100 buy-ins, the naive estimate says ruin is essentially impossible. Accounti
 
 ![Risk of ruin](figures/risk_of_ruin.png)
 
+### My actual rule: move down, don't go broke
+
+Every number above assumes a player who never moves down. That was not my rule. I kept **at least 50 buy-ins** for a stake (1 buy-in = 100 bb) and **moved down one stake when the bankroll fell below 30 buy-ins**, moving back up once it was worth 50 buy-ins of the stake above. `src/move_down.py` applies that rule to the same simulated luck as the fixed-stake case. Stakes form a ladder with a ratio of 2 (for example NL200, NL100, NL50), with two stakes below the starting one. Under the rule, "ruin" means the ladder runs out: the bankroll falls below 30 buy-ins of the lowest stake. Full output is in `results/move_down_summary.md`.
+
+| SD | True win rate | Fixed stake: lose all 50 buy-ins | Move-down rule: ruin | Careers that ever moved down |
+|---|---|---|---|---|
+| 70 | 4.00 | 0.0% | 0.00% | 4% |
+| 70 | 2.06 (low end) | 1.3% | 0.05% | 17% |
+| 100 | 4.00 | 1.5% | **0.18%** | 19% |
+| 100 | 1.23 (low end) | 21.2% | **10.3%** | 56% |
+| 130 | 4.00 | 8.7% | 2.9% | 37% |
+| 130 | 0.40 (low end) | 51.0% | 41.1% | 78% |
+
+*4,000 careers of 500,000 hands each.*
+
+Three things stand out:
+
+- **Moving down does most of the work.** At SD 100 and a true 4 bb/100, the rule cuts the risk of ruin about eightfold, from 1.5% to 0.18%, even though about one career in five has to move down at some point. This is the Kelly logic from above made concrete: the bet shrinks as the bankroll shrinks.
+- **It does not rescue a thin edge.** If the true win rate is at the low end of the interval, ruin is still about 10% at SD 100, and most careers spend time at lower stakes. That is the uncertainty problem from the previous section again. A rule protects a real edge, but it cannot create one.
+- **The rule is only as good as the ladder below you.** With one stake below the starting one, ruin at SD 100 and 4 bb/100 is 1.9%. That is slightly *higher* than the fixed stake, because running out of ladder then means losing only 35 of the 50 buy-ins. With two stakes below it is 0.18%, and with three it rounds to 0.00%. Moving down only protects you if there is somewhere to move down to.
+
 ## Part 3: Real data with SQL, Pluribus vs. five professionals
 
 In 2019, the AI Pluribus played 10,000 hands of six-player no-limit hold'em against professionals. The authors reported a win of 48 milli-big-blinds per hand (4.8 bb/100), with a standard error of 25 (2.5 bb/100). They did *not* use raw results to get that number. They used **AIVAT**, a variance-reduction technique that removes much of the luck of the cards. This is the noise-and-signal problem from Part 1 at research scale: even a superhuman player's raw results over 10,000 hands are dominated by luck.
@@ -183,6 +205,7 @@ On April 15, 2011, a date players call Black Friday, the US Department of Justic
 - The simulations treat each 100-hand block as independent with a constant edge. Real win rates drift with stakes, opponents and game conditions, just as trading edges decay.
 - The SD of my play is unknown, so it is shown as a range (70 to 130 bb/100) rather than a single value.
 - The risk-of-ruin formula assumes continuous play at one fixed stake. The Monte Carlo version checks for ruin every 100 hands, so it slightly understates the risk.
+- The move-down simulation assumes the same win rate in bb/100 at every stake and a stake ratio of 2. Real win rates are usually higher at lower stakes, which would make the rule look even safer. It also ignores rake, game availability and the temptation to break the rule.
 - The "average over uncertainty" calculation treats the true win rate as normal around the observed one, which is a simple flat-prior approximation.
 - In the Pluribus data, human player labels are anonymized seat names, so one label is not necessarily one person. I do not re-implement AIVAT, because it requires the bot's own strategy.
 
@@ -195,6 +218,7 @@ pip install -r requirements.txt
 
 # Parts 1 and 2: simulation (no data needed)
 python -m src.make_figures
+python -m src.move_down        # my actual bankroll rule vs. the fixed stake
 
 # Part 3: get only the Pluribus folder of the public PHH dataset (MIT license)
 git clone --depth 1 --filter=blob:none --sparse https://github.com/uoftcprg/phh-dataset.git
@@ -218,6 +242,7 @@ The loader reports how many hands lack recorded final stacks. Add `--replay-miss
 src/winrate.py           confidence intervals, sample-size math, noise vs. signal
 src/simulate.py          Monte Carlo careers, drawdowns, time under water
 src/bankroll.py          risk of ruin, convexity adjustment, absorbing barrier, Kelly
+src/move_down.py         my actual rule: 50 buy-ins, move down below 30
 src/make_figures.py      figures and numbers for Parts 1 and 2
 src/phh_loader.py        PHH hand histories -> SQLite
 src/analyze_pluribus.py  SQL analysis, intervals, figures for Part 3

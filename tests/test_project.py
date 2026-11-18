@@ -69,6 +69,28 @@ def test_absorbing_barrier_freezes_ruined_paths():
     assert absorbed[1].tolist() == [0, 2, 4, 6, 8]
 
 
+def test_move_down_rule_steps_down_then_runs_out_of_stakes():
+    import numpy as np
+    from src.move_down import run_rule
+    # Start 5,000 bb (50 buy-ins). Results are in bb of the stake being played.
+    blocks = np.array([[-2100, -2000, -1000, -3000, 99999]], dtype=float)
+    r = run_rule(blocks)  # two stakes below, ratio 2
+    # 2,900 < 3,000 -> down to half stakes; -1,000 -> 1,900; -500 -> 1,400 < 1,500
+    # -> quarter stakes; -750 -> 650 < 750 (30 buy-ins of the lowest stake) -> ruined.
+    assert r["ruined"].tolist() == [True]
+    assert r["final_bankroll_bb"][0] == 650   # frozen once ruined
+
+
+def test_move_down_rule_moves_back_up():
+    import numpy as np
+    from src.move_down import run_rule
+    blocks = np.array([[-2100, 4400, 0]], dtype=float)
+    r = run_rule(blocks)
+    # 2,900 -> half stakes; +2,200 -> 5,100 >= 50 buy-ins of the starting stake -> back up.
+    assert not r["ruined"][0]
+    assert r["blocks_below"][0] == 1
+
+
 # ------------------------------------------------------------ parsing
 
 def test_parse_actions():
