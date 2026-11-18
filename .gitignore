@@ -1,0 +1,10 @@
+# downloaded data and databases (keep the repo small)
+data/
+phh-dataset/
+*.db
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/

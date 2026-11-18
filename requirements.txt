@@ -1,0 +1,5 @@
+numpy>=1.24
+matplotlib>=3.7
+# optional
+pytest>=7      # nicer test runner: python -m pytest tests/
+# pokerkit     # only for --replay-missing in the loader
